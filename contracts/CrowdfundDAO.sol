@@ -110,7 +110,7 @@ contract crowdDAO is Ownable{
     }
 
     function createProposal( address _beneficiary, uint256 _etherAmountInWei, string memory _description,bytes memory  _transactionBytecode) public onlyDAOMember onlyActiveDAO returns (uint256 proposalID) { 
-        proposalID = proposals.length + 1; 
+        proposalID = proposals.length; 
         proposalsNumber = proposalID + 1;
         proposals[proposalID].beneficiary = _beneficiary; 
         proposals[proposalID].etherAmount = _etherAmountInWei; 
@@ -119,7 +119,7 @@ contract crowdDAO is Ownable{
         proposals[proposalID].state = ProposalState.Proposed; 
         proposals[proposalID].votingDeadline = now + votingPeriod * 1 seconds; 
         proposals[proposalID].votesNumber = 0;
-        //proposals.push(Proposal(_beneficiary));
+        //proposals.push(Proposal(proposals[proposalID].beneficiary,proposals[proposalID].etherAmount,proposals[proposalID].description,proposals[proposalID].proposalHash,proposals[proposalID].state,proposals[proposalID].votingDeadline),proposals[proposalID].votesNumber,proposals[proposalID].voted[address]=false);
         
         emit ProposalAdded(_beneficiary, _etherAmountInWei, _description, proposalID);
         return proposalID;
@@ -184,7 +184,7 @@ contract crowdDAO is Ownable{
         p.state = ProposalState.Executed; 
         (bool success, bytes memory response) = (p.beneficiary.call{value: (p.etherAmount * 1 wei)}(_transactionBytecode));
         require(success);
-        console.log(response)
+        //console.log(response);
         emit ProposalExecuted(_proposalID);
 }
  
