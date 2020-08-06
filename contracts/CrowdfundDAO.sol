@@ -67,7 +67,7 @@ contract CrowdDAO is Ownable{
     }
 
  
-    function Constructor( address _crowdfundModerator, uint256 _minimumQuorumInPercents, uint256 _marginForMajorityInPercents, uint256 _votingPeriodInMinutes, uint256 _withdrawalTimeWindowInMinutes, uint256 _withdrawalMaxAmountInWei ) public payable { 
+    constructor( address _crowdfundModerator, uint256 _minimumQuorumInPercents, uint256 _marginForMajorityInPercents, uint256 _votingPeriodInMinutes, uint256 _withdrawalTimeWindowInMinutes, uint256 _withdrawalMaxAmountInWei ) public payable { 
         daoToken = new CRToken(); 
         daoCrowdfund = new Crowdfund(address(this), _crowdfundModerator, 100, 1000, 10 * 24 * 60, 5, 1, address(daoToken));
     /* Setup rules */ 
@@ -132,7 +132,7 @@ contract CrowdDAO is Ownable{
         require (p.state == ProposalState.Proposed); 
         require (p.voted[msg.sender] == false);
         uint voterBalance = daoToken.balanceOf(msg.sender); 
-        daoToken.pause();
+        daoToken.blockAccount(msg.sender);
         p.voted[msg.sender] = true; 
         p.votes.push(Vote(msg.sender, _inSupport, voterBalance, _justificationText)); 
         p.votesNumber += 1;
@@ -144,7 +144,7 @@ contract CrowdDAO is Ownable{
     /* Check is voting deadline reached */ 
         require(now > p.votingDeadline); 
         require(p.state == ProposalState.Proposed);
-        daoToken.unpause();
+        daoToken.unblockAccount(msg.sender);
         uint256 _votesNumber = p.votes.length; 
         uint256 tokensFor = 0; 
         uint256 tokensAgainst = 0;
@@ -228,7 +228,7 @@ contract CrowdDAO is Ownable{
     function withdrawDissolvedFunds() public onlyDissolvedDAO onlyDAOMember { 
         require(accountPayouts[msg.sender] == false);
         accountPayouts[msg.sender] = true; 
-        daoToken.pause();
+        daoToken.blockAccount(msg.sender);
         uint tokenBalance = daoToken.balanceOf(msg.sender); 
         uint ethToSend = tokenBalance.div(daoToken.totalSupply()).mul(dissolvedBalance);
         msg.sender.transfer(ethToSend);

@@ -33,7 +33,7 @@ contract Crowdfund is Ownable {
   event FundsReceived(address indexed backer, uint256 amount); 
   event FundsWithdrawn(address indexed backer, uint256 amount); 
   event CrowdfundSuccessful(bool isSuccess); 
-  event CrowdsaleFundsForwarded(address indexed beneficiary);
+  event CrowdFundsForwarded(address indexed beneficiary);
 
   /* Contract Structures */ 
   enum CrowdfundState { 
@@ -46,14 +46,7 @@ contract Crowdfund is Ownable {
     
 
   constructor ( 
-    address payable _crowdfundBeneficiary, 
-    address _crowdfundModerator, 
-    uint256 _fundingGoalInEthers, 
-    uint256 _fundingCapInEthers, 
-    uint256 _durationInMinutes, 
-    uint256 _tokenPriceNumerator, 
-    uint256 _tokenPriceDenominator, 
-    address _tokenRewardAddress) public { 
+    address payable _crowdfundBeneficiary, address _crowdfundModerator, uint256 _fundingGoalInEthers,uint256 _fundingCapInEthers, uint256 _durationInMinutes, uint256 _tokenPriceNumerator, uint256 _tokenPriceDenominator, address _tokenRewardAddress) public { 
       beneficiary = _crowdfundBeneficiary;
       moderator = _crowdfundModerator;
       fundingGoal = _fundingGoalInEthers * 1 ether; 
@@ -84,15 +77,16 @@ contract Crowdfund is Ownable {
     if (now < deadline && amountRaised < fundingGoal) { 
      revert();
     } else if (now >= deadline && amountRaised < fundingGoal) { 
-        crowdfundState = CrowdfundState.Failed; //finishMinting(); 
+        crowdfundState = CrowdfundState.Failed; 
+        CrowdfundToken.finishMinting(); 
         CrowdfundSuccessful(false);
     } else if (msg.sender == moderator && amountRaised >= fundingGoal) { 
         crowdfundState = CrowdfundState.Success; 
-        //finishMinting(); 
+        CrowdfundToken.finishMinting(); 
         CrowdfundSuccessful(true); 
     } else if (amountRaised >= fundingCap) { 
         crowdfundState = CrowdfundState.Success; 
-        //finishMinting(); 
+        CrowdfundToken.finishMinting(); 
         CrowdfundSuccessful(true); 
     } else { 
       revert(); 
@@ -102,7 +96,7 @@ contract Crowdfund is Ownable {
  
   function withdraw() public onlyFailedCrowdfund { 
     uint256 amountEth = balances[msg.sender]; 
-    CrowdfundToken.burn(msg.sender,balances[msg.sender]);
+    CrowdfundToken.burnFrom(msg.sender,balances[msg.sender]);
     if (amountEth > 0) { 
         msg.sender.transfer(amountEth); 
         emit FundsWithdrawn(msg.sender, amountEth); 
@@ -112,14 +106,14 @@ contract Crowdfund is Ownable {
   }
 
   
-  function forwardCrowdfundFunding()public onlySuccessfulCrowdfund onlyCrowdsaleModerator { 
+  function forwardCrowdfundFunding()public onlySuccessfulCrowdfund onlyCrowdfundModerator { 
     crowdfundState = CrowdfundState.Forwarded; 
     beneficiary.transfer(amountRaised); 
     transferOwnership(beneficiary); 
-    CrowdsaleFundsForwarded(beneficiary); 
+    CrowdFundsForwarded(beneficiary); 
     }
     
-  modifier onlyCrowdsaleModerator() { 
+  modifier onlyCrowdfundModerator() { 
     require(msg.sender == moderator); 
     _; 
     }
