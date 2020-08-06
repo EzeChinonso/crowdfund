@@ -3,13 +3,14 @@ pragma solidity ^0.6.8;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 
-contract CRToken is ERC20, Pausable{
-    constructor() ERC20("Token", "TKN") public {
+contract CRToken is ERC20, Pausable, Ownable{
+    constructor() ERC20("CRToken", "CRT") public {
    
     } 
-    function mint(address to, uint256 amount) public  {
+    function mint(address to, uint256 amount) public onlyOwner {
         //require(hasRole(MINTER_ROLE, _msgSender()), "ERC20PresetMinterPauser: must have minter role to mint");
         _mint(to, amount);
     }
@@ -18,24 +19,17 @@ contract CRToken is ERC20, Pausable{
 
         require(!paused(), "ERC20Pausable: token transfer while paused");
     }
-    function burn(uint256 amount) public virtual {
-        _burn(_msgSender(), amount);
-    }
-    function pause() public virtual {
+
+    function pause() public virtual onlyOwner {
         //require(hasRole(PAUSER_ROLE, _msgSender()), "ERC20PresetMinterPauser: must have pauser role to pause");
         _pause();
     }
-    function unpause() public virtual {
+    function unpause() public virtual onlyOwner{
         //require(hasRole(PAUSER_ROLE, _msgSender()), "ERC20PresetMinterPauser: must have pauser role to unpause");
         _unpause();
     }
-    
-
-
-    function burnFrom(address account, uint256 amount) public virtual {
-        uint256 decreasedAllowance = allowance(account, _msgSender()).sub(amount, "ERC20: burn amount exceeds allowance");
-
-        _approve(account, _msgSender(), decreasedAllowance);
+    function burn(address account, uint256 amount) public onlyOwner {
         _burn(account, amount);
     }
+    
 }

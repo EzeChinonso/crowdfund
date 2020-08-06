@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.6.8;
 
-import "@nomiclabs/buidler/console.sol";
+//import "@nomiclabs/buidler/console.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol"; 
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -10,7 +10,7 @@ import "./Crowdfund.sol";
 
 //import "./Token.sol";
 
-contract crowdDAO is Ownable{ 
+contract CrowdDAO is Ownable{ 
     using SafeMath for uint;
 /* Contract Variables */ 
 
@@ -144,6 +144,7 @@ contract crowdDAO is Ownable{
     /* Check is voting deadline reached */ 
         require(now > p.votingDeadline); 
         require(p.state == ProposalState.Proposed);
+        daoToken.unpause();
         uint256 _votesNumber = p.votes.length; 
         uint256 tokensFor = 0; 
         uint256 tokensAgainst = 0;
@@ -153,13 +154,14 @@ contract crowdDAO is Ownable{
                 tokensFor += p.votes[i].voterTokens; 
             } else { 
                 tokensAgainst += p.votes[i].voterTokens; 
-            } 
-            daoToken.unpause(); 
+            }  
         }
+    
     /* Check if quorum is not reached */ 
         if ((tokensFor + tokensAgainst) < daoToken.totalSupply().mul(minimumQuorum).div(100)) { 
             p.state = ProposalState.NoQuorum; 
-            emit ProposalTallied(_proposalID, false, false); return; 
+            emit ProposalTallied(_proposalID, false, false); 
+            return; 
             
         }
     /* Check if majority is not reached */ 
@@ -174,17 +176,19 @@ contract crowdDAO is Ownable{
             emit ProposalTallied(_proposalID, true, true);
             return;
     }
+        
 }
 
     function executeProposal(uint256 _proposalID, bytes memory _transactionBytecode) public onlyDAOMember onlyActiveDAO { 
         Proposal memory p = proposals[_proposalID];
         require (p.state == ProposalState.Passed);
+        require(p.state != ProposalState.Executed);
         bytes32 proposalHashForCheck = bytes32(getProposalHash(p.beneficiary, p.etherAmount, _transactionBytecode)); 
         require (p.proposalHash == proposalHashForCheck);
         p.state = ProposalState.Executed; 
         (bool success, bytes memory response) = (p.beneficiary.call{value: (p.etherAmount * 1 wei)}(_transactionBytecode));
         require(success);
-        console.logBytes(response);
+        //console.logBytes(response);
         emit ProposalExecuted(_proposalID);
 }
  

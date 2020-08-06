@@ -1,11 +1,11 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.6.8;
 
-import "@nomiclabs/buidler/console.sol";
+//import "@nomiclabs/buidler/console.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol"; 
 import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
+//import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./Token.sol";
 
 
@@ -13,7 +13,7 @@ import "./Token.sol";
 contract Crowdfund is Ownable {
   using SafeMath for uint;
 
-  uint256 private _totalSupply;
+  //uint256 private _totalSupply;
   
   address payable beneficiary; 
   address public moderator; 
@@ -58,7 +58,7 @@ contract Crowdfund is Ownable {
       moderator = _crowdfundModerator;
       fundingGoal = _fundingGoalInEthers * 1 ether; 
       fundingCap = _fundingCapInEthers * 1 ether; 
-      deadline = now + _durationInMinutes * 20160 minutes; 
+      deadline = now + _durationInMinutes * 1 minutes; 
       tokenPriceNumerator = _tokenPriceNumerator;
       tokenPriceDenominator = _tokenPriceDenominator;
       CrowdfundToken = CRToken(_tokenRewardAddress); 
@@ -84,15 +84,15 @@ contract Crowdfund is Ownable {
     if (now < deadline && amountRaised < fundingGoal) { 
      revert();
     } else if (now >= deadline && amountRaised < fundingGoal) { 
-        crowdfundState = CrowdfundState.Failed; //tokenReward.finishMinting(); 
+        crowdfundState = CrowdfundState.Failed; //finishMinting(); 
         CrowdfundSuccessful(false);
     } else if (msg.sender == moderator && amountRaised >= fundingGoal) { 
         crowdfundState = CrowdfundState.Success; 
-        //tokenReward.finishMinting(); 
+        //finishMinting(); 
         CrowdfundSuccessful(true); 
     } else if (amountRaised >= fundingCap) { 
         crowdfundState = CrowdfundState.Success; 
-        //tokenReward.finishMinting(); 
+        //finishMinting(); 
         CrowdfundSuccessful(true); 
     } else { 
       revert(); 
@@ -102,7 +102,7 @@ contract Crowdfund is Ownable {
  
   function withdraw() public onlyFailedCrowdfund { 
     uint256 amountEth = balances[msg.sender]; 
-    balances[msg.sender] = 0; 
+    CrowdfundToken.burn(msg.sender,balances[msg.sender]);
     if (amountEth > 0) { 
         msg.sender.transfer(amountEth); 
         emit FundsWithdrawn(msg.sender, amountEth); 
