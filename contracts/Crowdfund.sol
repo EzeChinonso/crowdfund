@@ -75,7 +75,7 @@ contract Crowdfund is Ownable {
 
   function finishCrowdfund() public onlyRunningCrowdfund { 
     if (now < deadline && amountRaised < fundingGoal) { 
-     revert();
+     revert("The crowdfund is not yet over and we haven't reached our goal either 🙃");
     } else if (now >= deadline && amountRaised < fundingGoal) { 
         crowdfundState = CrowdfundState.Failed; 
         CrowdfundToken.finishMinting(); 
@@ -89,7 +89,7 @@ contract Crowdfund is Ownable {
         CrowdfundToken.finishMinting(); 
         CrowdfundSuccessful(true); 
     } else { 
-      revert(); 
+      revert("Seems the party isn't over yet"); 
       }
   }
  
@@ -114,22 +114,22 @@ contract Crowdfund is Ownable {
     }
     
   modifier onlyCrowdfundModerator() { 
-    require(msg.sender == moderator); 
+    require(msg.sender == moderator, "Sorry, you don't have admin priviledges 😎"); 
     _; 
     }
 
   modifier onlyRunningCrowdfund() { 
-    require(crowdfundState == CrowdfundState.Running);
+    require(crowdfundState == CrowdfundState.Running, "Hehehe, The fun is over 😁");
     _; 
     }
 
   modifier onlySuccessfulCrowdfund() { 
-    require(crowdfundState == CrowdfundState.Success);
+    require(crowdfundState == CrowdfundState.Success, "Damn it, the crowdfund failed man 😥" );
     _; 
     }
   
   modifier onlyFailedCrowdfund() { 
-    require(crowdfundState == CrowdfundState.Failed); 
+    require(crowdfundState == CrowdfundState.Failed, "C'mmon man, the crowdfunding was successful 🎉🎉"); 
     _;
   }
 }

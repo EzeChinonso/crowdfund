@@ -1,14 +1,11 @@
 //SPDX-License-Identifier: Unlicense
 pragma solidity ^0.6.8;
 
-//import "@nomiclabs/buidler/console.sol";
-
+import "@nomiclabs/buidler/console.sol";
 import "@openzeppelin/contracts/access/Ownable.sol"; 
 import "@openzeppelin/contracts/math/SafeMath.sol";
 import "./Crowdfund.sol";
-
-
-//import "./Token.sol";
+import "./Token.sol";
 
 contract CrowdDAO is Ownable{ 
     using SafeMath for uint;
@@ -82,31 +79,34 @@ contract CrowdDAO is Ownable{
     
     /* Change Withdraw Tracking rules */ 
     function setWithdrawalMaxAmount(uint _withdrawalMaxAmountInWei) public { 
-        require(msg.sender == address(this));
+        require(msg.sender == address(this), "You don't have authorization for this 😎");
         withdrawalMaxAmount = _withdrawalMaxAmountInWei; 
         }
 
 /* Change Voting majority required */ 
     function setMarginForMajority(uint _marginForMajorityInPercents) public { 
-        require(msg.sender == address(this));
+        require(msg.sender == address(this), "You don't have authorization for this 😎");
         marginForMajority = _marginForMajorityInPercents;
     }
     function setMinimumQuorum(uint _minimumQuorumInPercents) public {
 /* Change Voting quorum required */ 
-        require(msg.sender == address(this));
+        require(msg.sender == address(this), "You don't have authorization for this 😎");
         minimumQuorum = _minimumQuorumInPercents; 
         }
     function setWithdrawalTimeWindow(uint _withdrawalTimeWindowInMinutes) public{
-        require(msg.sender == address(this));
+        require(msg.sender == address(this), "You don't have authorization for this 😎");
         withdrawalTimeWindow = _withdrawalTimeWindowInMinutes;
     }
     function setVotingPeriod(uint _votingPeriodInMinutes) public{
-        require(msg.sender == address(this));
+        require(msg.sender == address(this), "You don't have authorization for this 😎");
         votingPeriod = _votingPeriodInMinutes;
     }
-
+    
+    //function getTransactionHash(string memory _function) public pure returns(bytes4) {
+    //    return bytes4(keccak256(abi.encodePacked(_function)));
+    //}
     function getProposalHash( address _beneficiary, uint256 _etherAmountInWei, bytes memory _transactionBytecode ) public pure returns (bytes32) { 
-        return keccak256(abi.encode(_beneficiary, _etherAmountInWei, _transactionBytecode)); 
+        return keccak256(abi.encodePacked(_beneficiary, _etherAmountInWei, _transactionBytecode)); 
     }
 
     function createProposal( address _beneficiary, uint256 _etherAmountInWei, string memory _description,bytes memory  _transactionBytecode) public onlyDAOMember onlyActiveDAO returns (uint256 proposalID) { 
@@ -119,6 +119,8 @@ contract CrowdDAO is Ownable{
         proposals[proposalID].state = ProposalState.Proposed; 
         proposals[proposalID].votingDeadline = now + votingPeriod * 1 seconds; 
         proposals[proposalID].votesNumber = 0;
+        //TODO:
+        //Figure out how to push this to the Proposals array
         //proposals.push(Proposal(proposals[proposalID].beneficiary,proposals[proposalID].etherAmount,proposals[proposalID].description,proposals[proposalID].proposalHash,proposals[proposalID].state,proposals[proposalID].votingDeadline),proposals[proposalID].votesNumber,proposals[proposalID].voted[address]=false);
         
         emit ProposalAdded(_beneficiary, _etherAmountInWei, _description, proposalID);
@@ -129,8 +131,8 @@ contract CrowdDAO is Ownable{
     
     function vote( uint256 _proposalID, bool _inSupport, string memory _justificationText ) public  onlyDAOMember onlyActiveDAO { 
         Proposal storage p = proposals[_proposalID];
-        require (p.state == ProposalState.Proposed); 
-        require (p.voted[msg.sender] == false);
+        require (p.state == ProposalState.Proposed, "This proposal has not yet been made by congress 💩"); 
+        require (p.voted[msg.sender] == false, "You've voted before, Are you trying to rig? 🤢");
         uint voterBalance = daoToken.balanceOf(msg.sender); 
         daoToken.blockAccount(msg.sender);
         p.voted[msg.sender] = true; 
@@ -142,8 +144,8 @@ contract CrowdDAO is Ownable{
     function finishProposalVoting(uint256 _proposalID) public onlyDAOMember onlyActiveDAO { 
         Proposal memory p = proposals[_proposalID];
     /* Check is voting deadline reached */ 
-        require(now > p.votingDeadline); 
-        require(p.state == ProposalState.Proposed);
+        require(now > p.votingDeadline, "voting is over 😈"); 
+        require(p.state == ProposalState.Proposed, "This proposal has not yet been made 😴");
         daoToken.unblockAccount(msg.sender);
         uint256 _votesNumber = p.votes.length; 
         uint256 tokensFor = 0; 
@@ -181,14 +183,14 @@ contract CrowdDAO is Ownable{
 
     function executeProposal(uint256 _proposalID, bytes memory _transactionBytecode) public onlyDAOMember onlyActiveDAO { 
         Proposal memory p = proposals[_proposalID];
-        require (p.state == ProposalState.Passed);
-        require(p.state != ProposalState.Executed);
+        require (p.state == ProposalState.Passed, "This proposal has not yet been passed by congress 😁😶☹😤");
+        require(p.state != ProposalState.Executed, "This proposal has been executed already 😮");
         bytes32 proposalHashForCheck = bytes32(getProposalHash(p.beneficiary, p.etherAmount, _transactionBytecode)); 
         require (p.proposalHash == proposalHashForCheck);
         p.state = ProposalState.Executed; 
         (bool success, bytes memory response) = (p.beneficiary.call{value: (p.etherAmount * 1 wei)}(_transactionBytecode));
-        require(success);
-        //console.logBytes(response);
+        require(success, "Damn it, seems that wasn't successful 😰");
+        console.logBytes(response);
         emit ProposalExecuted(_proposalID);
 }
  
@@ -218,7 +220,7 @@ contract CrowdDAO is Ownable{
 }
 
     function dissolveContract() public onlyActiveDAO { 
-        require(msg.sender == address(this));
+        require(msg.sender == address(this), "You don't have authorization for this 😎");
         isDissolved = true; 
         dissolvedBalance = address(this).balance; 
         emit BalanceToDissolve(dissolvedBalance);
@@ -226,7 +228,7 @@ contract CrowdDAO is Ownable{
     
  
     function withdrawDissolvedFunds() public onlyDissolvedDAO onlyDAOMember { 
-        require(accountPayouts[msg.sender] == false);
+        require(accountPayouts[msg.sender] == false, "You've recieved your stash bro 🙄");
         accountPayouts[msg.sender] = true; 
         daoToken.blockAccount(msg.sender);
         uint tokenBalance = daoToken.balanceOf(msg.sender); 
@@ -235,12 +237,18 @@ contract CrowdDAO is Ownable{
 }  
  
     modifier onlyDAOMember {
-        require(daoToken.balanceOf(msg.sender) > 0);
+        require(daoToken.balanceOf(msg.sender) > 0, "Dude you've got no tokens🥱🍟");
         _; }
 
-    modifier onlyActiveDAO { require(isDissolved == false); _; }
+    modifier onlyActiveDAO { 
+        require(isDissolved == false, "C'mmon man the DAO is still active 🤡"); 
+    _; 
+    }
 
-    modifier onlyDissolvedDAO { require(isDissolved == true); _; }
+    modifier onlyDissolvedDAO {
+         require(isDissolved == true, "Sorry, the DAO is no longer active 😥"); 
+    _; 
+    }
 }
 
 

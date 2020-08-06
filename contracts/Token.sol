@@ -29,33 +29,28 @@ contract CRToken is ERC20, Ownable{
         _approve(account, _msgSender(), decreasedAllowance);
         _burn(account, amount);
     }
+    function blockAccount(address _account) public onlyOwner {
+        blockedAccounts[_account] = true;
+    }
+    function unblockAccount(address _account) public onlyOwner { 
+        blockedAccounts[_account] = false;
+    }
+    function isBlocked(address _account) public view returns (bool result) {
+        return(blockedAccounts[_account] == true); 
+    }
 
-    
-
-function blockAccount(address _account) public onlyOwner {
-    blockedAccounts[_account] = true;
-}
-
-
-function unblockAccount(address _account) public onlyOwner { 
-    blockedAccounts[_account] = false;
-}
-function isBlocked(address _account) public view returns (bool result) {
-    return(blockedAccounts[_account] == true); 
-}
-
-modifier onlyNotBlocked(address _from) { 
-    require(blockedAccounts[_from] == false);
-    _; 
-}
-//todo:
-//create fuction to stop any one from finishMinting
-function finishMinting() public onlyOwner returns (bool) {
-    minting = false;
-    return true;
-}
-modifier canMint(){
-    require(minting == true);
-    _;
-}
+    modifier onlyNotBlocked(address _from) { 
+        require(blockedAccounts[_from] == false);
+        _; 
+    }
+    //todo:
+    //create fuction to stop any one from finishMinting
+    function finishMinting() public onlyOwner returns (bool) {
+        minting = false;
+        return true;
+    }
+    modifier canMint(){
+        require(minting == true);
+        _;
+    }
 }

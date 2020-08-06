@@ -12,8 +12,8 @@ describe('CrowdfundDAO', function () {
         await crowdfundDAO.deployed();
     })
     it('.createProposal', async function (){
-        //const crwd = await crowdfundDAO.createProposal(beneficiary, 50000, 'extend voting deadline', '566fd2f2'));
-        //await crwd.proposalID.then((res)=>{console.log(res)})
+        const crwd = await crowdfundDAO.createProposal(beneficiary, 50000, 'extend voting deadline', '0x566fd2f2');
+        await crwd.proposalID.then((res)=>{console.log(res)})
 
     })
 })
