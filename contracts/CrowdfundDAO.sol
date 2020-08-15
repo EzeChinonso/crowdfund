@@ -16,12 +16,11 @@ contract CrowdDAO is Ownable{
     uint256 public minimumQuorum; 
     uint256 public marginForMajority; 
     uint256 public votingPeriod; 
-    Proposal[] public proposals; 
+    mapping (uint256 => Proposal) proposals;
+    uint256[] public ProposalID; 
     uint256 public proposalsNumber = 0;
     Withdrawal[] public withdrawals; 
-    uint256 public withdrawalsNumber = 0;
-    uint256 public voterId;
-    Vote[] votes; 
+    uint256 public withdrawalsNumber = 0; 
     uint256 withdrawalTimeWindow; 
     uint256 withdrawalMaxAmount;
     bool isDissolved = false; 
@@ -46,9 +45,8 @@ contract CrowdDAO is Ownable{
     /* Proposal state */ 
         ProposalState state;
     /* Voting state */ 
-        uint256 votingDeadline;
-        mapping (uint => Vote) votes; 
-        //Vote[] votes; 
+        uint256 votingDeadline; 
+        Vote[] votes; 
         uint256 votesNumber; 
         mapping (address => bool) voted;
     }
@@ -113,18 +111,20 @@ contract CrowdDAO is Ownable{
     }
 
     function createProposal( address _beneficiary, uint256 _etherAmountInWei, string memory _description,bytes memory  _transactionBytecode) public onlyDAOMember onlyActiveDAO returns (uint256 proposalID) { 
-        proposalID = proposals.length; 
+        proposalID = ProposalID.length; 
         proposalsNumber = proposalID + 1;
-        proposals[proposalID].beneficiary = _beneficiary; 
-        proposals[proposalID].etherAmount = _etherAmountInWei; 
-        proposals[proposalID].description = _description; 
-        proposals[proposalID].proposalHash = getProposalHash(_beneficiary, _etherAmountInWei, _transactionBytecode); 
-        proposals[proposalID].state = ProposalState.Proposed; 
-        proposals[proposalID].votingDeadline = now + votingPeriod * 1 seconds; 
-        proposals[proposalID].votesNumber = 0;
+        Proposal memory p = proposals[proposalID];
+        p.beneficiary = _beneficiary; 
+        p.etherAmount = _etherAmountInWei; 
+        p.description = _description; 
+        p.proposalHash = getProposalHash(_beneficiary, _etherAmountInWei, _transactionBytecode); 
+        p.state = ProposalState.Proposed; 
+        p.votingDeadline = now + votingPeriod * 1 seconds; 
+        p.votesNumber = 0;
+        ProposalID.push(proposalID);
         //TODO:
         //Figure out how to push this to the Proposals array
-        proposals.push(Proposal(proposals[proposalID].beneficiary,proposals[proposalID].etherAmount,proposals[proposalID].description,proposals[proposalID].proposalHash,proposals[proposalID].state,proposals[proposalID].votingDeadline, proposals[proposalID].votesNumber ));
+        p = Proposal(proposals[proposalID].beneficiary,proposals[proposalID].etherAmount,proposals[proposalID].description,proposals[proposalID].proposalHash,proposals[proposalID].state,proposals[proposalID].votingDeadline,proposals[proposalID].votes,proposals[proposalID].votesNumber);
         
         emit ProposalAdded(_beneficiary, _etherAmountInWei, _description, proposalID);
         return proposalID;
@@ -134,14 +134,12 @@ contract CrowdDAO is Ownable{
     
     function vote( uint256 _proposalID, bool _inSupport, string memory _justificationText ) public  onlyDAOMember onlyActiveDAO { 
         Proposal storage p = proposals[_proposalID];
-        require (p.state == ProposalState.Proposed, "This proposal has not yet been made by congress 💩"); 
+        require (p.state == ProposalState.Proposed, "This proposal has not been made yet 💩"); 
         require (p.voted[msg.sender] == false, "You've voted before, Are you trying to rig? 🤢");
-        voterId = votes.length;       
         uint voterBalance = daoToken.balanceOf(msg.sender); 
         daoToken.blockAccount(msg.sender);
         p.voted[msg.sender] = true; 
-        p.votes[voterId] = (Vote(msg.sender, _inSupport, voterBalance, _justificationText));
-        votes.push(p.votes[voterId]);  
+        p.votes.push(Vote(msg.sender, _inSupport, voterBalance, _justificationText)); 
         p.votesNumber += 1;
         emit Voted(_proposalID, msg.sender, _inSupport, voterBalance, _justificationText);
     }
@@ -150,17 +148,17 @@ contract CrowdDAO is Ownable{
         Proposal memory p = proposals[_proposalID];
     /* Check is voting deadline reached */ 
         require(now > p.votingDeadline, "voting is over 😈"); 
-        require(p.state == ProposalState.Proposed, "This proposal has not yet been made 😴");
+        require(p.state == ProposalState.Proposed, "This proposal has not been made yet 😴");
         daoToken.unblockAccount(msg.sender);
-        uint256 _votesNumber = votes.length; 
+        uint256 _votesNumber = p.votes.length; 
         uint256 tokensFor = 0; 
         uint256 tokensAgainst = 0;
     /* Count votes */ 
         for (uint256 i = 0; i < _votesNumber; i++) { 
-            if (votes[i].inSupport) { 
-                tokensFor += votes[i].voterTokens; 
+            if (p.votes[i].inSupport) { 
+                tokensFor += p.votes[i].voterTokens; 
             } else { 
-                tokensAgainst += votes[i].voterTokens; 
+                tokensAgainst += p.votes[i].voterTokens; 
             }  
         }
     
@@ -188,7 +186,7 @@ contract CrowdDAO is Ownable{
 
     function executeProposal(uint256 _proposalID, bytes memory _transactionBytecode) public onlyDAOMember onlyActiveDAO { 
         Proposal memory p = proposals[_proposalID];
-        require (p.state == ProposalState.Passed, "This proposal has not yet been passed by congress 😁😶☹😤");
+        require (p.state == ProposalState.Passed, "This proposal has not been made yet 😁😶☹😤");
         require(p.state != ProposalState.Executed, "This proposal has been executed already 😮");
         bytes32 proposalHashForCheck = bytes32(getProposalHash(p.beneficiary, p.etherAmount, _transactionBytecode)); 
         require (p.proposalHash == proposalHashForCheck);
@@ -255,6 +253,4 @@ contract CrowdDAO is Ownable{
     _; 
     }
 }
-
-
 
